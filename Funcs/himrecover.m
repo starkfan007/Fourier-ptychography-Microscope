@@ -86,7 +86,11 @@ else
 end
 
 %% initialization
-him = imresize(sum(imseqlow,3),[m,n]); 
+if ~isfield(opts, 'him')
+    him = imresize(sum(imseqlow,3),[m,n]); 
+else
+    him = opts.him;
+end 
 himFT = fftshift(fft2(him));
 
 %% main part to optimize estimate of high-res image

@@ -4,7 +4,7 @@ close all;clear;clc;
 % Add necessary folders into the current working directory
 addpath(genpath(pwd));
 % Load data file
-data_name = 'USAF_red';
+data_name = 'MouseKidney_green';
 data_dir = ['Data\' data_name '.mat']; 
 load(data_dir); % refer to 'data_description.txt' for more details
 % Display raw images
@@ -39,7 +39,7 @@ spsize      = 1.845e-6; % pixel size of low-res image on sample plane, in m
 upsmp_ratio = 4;        % upsampling ratio
 psize       = spsize/upsmp_ratio; % pixel size of high-res image on sample plane, in m
 
-opts.loopnum    = 10;   % iteration number
+opts.loopnum    = 1;   % iteration number
 opts.alpha      = 1;    % '1' for ePIE, other value for rPIE
 opts.beta       = 1;    % '1' for ePIE, other value for rPIE
 opts.gamma_obj  = 1;    % the step size for object updating
@@ -50,16 +50,31 @@ opts.T          = 1;    % do momentum every T images. '0' for no momentum during
 opts.aberration = aberration; % pre-calibrated aberration, if available
 
 %% Choose the flexible LEDs to recover
-used_idx = 1:1:arraysize^2; % choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
+% used_idx = 1:1:arraysize^2; % choose which raw image is used, for example, 1:2:arraysize^2 means do FPM recovery with No1 image, No3 image, No5 image......
 % used_idx = find((ylocation - ystart) >= 0)
 % used_idx = find((ylocation - ystart) <= 0)
 % used_idx = find((xlocation - xstart) >= 0)
 % used_idx = find((xlocation - xstart) <= 0)
+[~, LED_idx] = sparse_recover(imlow_HDR, kx, ky, NA, wlength, spsize, psize, z, opts);
+used_idx = LED_idx(:,1:225);
 
 imlow_used = imlow_HDR(:,:,used_idx);
 kx_used = kx(used_idx);
 ky_used = ky(used_idx);
-[him, tt, fprobe, imlow_HDR1] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts);
+[him, ~, ~, ~] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts);
+
+%% for each loop choose the flexable LEDS
+for i = 1:10
+    opts.him = him;
+    [~, LED_idx] = sparse_recover(imlow_HDR, kx, ky, NA, wlength, spsize, psize, z, opts);
+    used_idx = LED_idx(:,1:225);
+
+    imlow_used = imlow_HDR(:,:,used_idx);
+    kx_used = kx(used_idx);
+    ky_used = ky(used_idx);
+    [him, tt, fprobe, imlow_HDR1] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts);
+end
+
 
 figure;
 set(gcf,'outerposition',get(0,'ScreenSize'))
