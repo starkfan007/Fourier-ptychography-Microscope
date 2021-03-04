@@ -1,4 +1,4 @@
-function [imseqlow_FT, LED_idx]=sparse_recover(imseqlow,kx,ky,NA,wlength,spsize,psize,z, opts)
+function seq = sparse_recover(imseqlow,kx,ky,NA,wlength,spsize,psize,z, opts)
 % FP algorithm to recover high-resolution image from low-resolution measured images
 % Input:
 %       imseqlow: low-res measurements, [m1 x n1 x numim] matrix
@@ -51,13 +51,10 @@ else
 end
 
 %% initialization
-if ~isfield(opts, 'him')
-    him = imresize(sum(imseqlow,3),[m,n]); 
-else
-    him = opts.him;
-end
+him = imresize(imseqlow(:,:,1),[m,n]); 
+him = mat2gray(him);
 himFT = fftshift(fft2(him));
-freqspec_energy = zeros(1, numim);
+imgseqlowlow = zeros(m1, n1, numim);
 
 %% find the main spectrum region     
 for i3 = 1:numim         
@@ -67,9 +64,10 @@ for i3 = 1:numim
     kxl=round(kxc-(n1-1)/2);kxh=round(kxc+(n1-1)/2);
     O_j=himFT(kyl:kyh,kxl:kxh);
     lowFT=O_j.*fmaskpro;
-    freqspec_energy(1, i3)=sum(sum(abs(lowFT)))/(m1*n1);
+    im_lowFT=ifft2(ifftshift(lowFT));
+    imgseqlowlow(:,:,i3)=abs(im_lowFT);
 end
-[imseqlow_FT, LED_idx] = sort(freqspec_energy, 'descend');
+seq = calc_entropy(imgseqlowlow);
 
 end
 

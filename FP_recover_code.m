@@ -4,7 +4,7 @@ close all;clear;clc;
 % Add necessary folders into the current working directory
 addpath(genpath(pwd));
 % Load data file
-data_name = 'MouseKidney_green';
+data_name = 'HeLa';
 data_dir = ['Data\' data_name '.mat']; 
 load(data_dir); % refer to 'data_description.txt' for more details
 % Display raw images
@@ -55,31 +55,27 @@ opts.aberration = aberration; % pre-calibrated aberration, if available
 % used_idx = find((ylocation - ystart) <= 0)
 % used_idx = find((xlocation - xstart) >= 0)
 % used_idx = find((xlocation - xstart) <= 0)
-[~, LED_idx] = sparse_recover(imlow_HDR, kx, ky, NA, wlength, spsize, psize, z, opts);
-used_idx = LED_idx(:,1:225);
+setofentropy = sparse_recover(imlow_HDR, kx, ky, NA, wlength, spsize, psize, z, opts);
+% used_idx = LED_idx(:,1:225);
+
+%set threshold values for set of entropy 0.1 0.1 0.1 0.1 0.03 0.03
+threshold = [1.0 0.8 0.6 0.5 0.3 0.25 0.25];
+used_idx = set_threshold(setofentropy, threshold);
 
 imlow_used = imlow_HDR(:,:,used_idx);
 kx_used = kx(used_idx);
 ky_used = ky(used_idx);
-[him, ~, ~, ~] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts);
-
-%% for each loop choose the flexable LEDS
-for i = 1:10
-    opts.him = him;
-    [~, LED_idx] = sparse_recover(imlow_HDR, kx, ky, NA, wlength, spsize, psize, z, opts);
-    used_idx = LED_idx(:,1:225);
-
-    imlow_used = imlow_HDR(:,:,used_idx);
-    kx_used = kx(used_idx);
-    ky_used = ky(used_idx);
-    [him, tt, fprobe, imlow_HDR1] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts);
-end
-
+[him, tt, fprobe, imlow_HDR1] = himrecover(imlow_used, kx_used, ky_used, NA, wlength, spsize, psize, z, opts);
 
 figure;
 set(gcf,'outerposition',get(0,'ScreenSize'))
-subplot(121);imshow(abs(him(50:end-50,50:end-50)),[]);title('Amplitude');
-subplot(122);imshow(angle(him(50:end-50,50:end-50)),[]);title('Phase');
+subplot(121);imshow(fprobe,[]);title('Aberration');
+subplot(122);imshow(abs(log(fftshift(fft2(him)))),[]);title('HR Spectrum');
+
+figure;
+set(gcf,'outerposition',get(0,'ScreenSize'))
+subplot(121);imshow(mat2gray(abs(him)),[]);title('Amplitude');
+subplot(122);imshow(angle(him),[]);title('Phase');
 disp(['Wavelength: ',num2str(wlength.*1e+9),' nm, Loop: ',num2str(opts.loopnum)]);
 disp(['Maximum illumination NA = ',num2str(max(NAt(used_idx)))]);
 
